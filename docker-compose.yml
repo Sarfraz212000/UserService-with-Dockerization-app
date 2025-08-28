@@ -1,0 +1,53 @@
+version: "3.8"
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: mysql-db
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: userdb
+      MYSQL_USER: user
+      MYSQL_PASSWORD: user123
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    networks:
+      - app-network
+
+  config-server:
+    build: ./config-server   
+    container_name: config-server
+    restart: always
+    ports:
+      - "8888:8888"
+    depends_on:
+      - mysql
+    networks:
+      - app-network
+
+  user-service:
+    build: ./user-service    
+    container_name: user-service
+    restart: always
+    ports:
+      - "9090:8080"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/userdb
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: root
+      CONFIG_SERVER_URL: http://config-server:8888
+    depends_on:
+      - mysql
+      - config-server
+    networks:
+      - app-network
+
+networks:
+  app-network:
+
+volumes:
+  mysql_data:
